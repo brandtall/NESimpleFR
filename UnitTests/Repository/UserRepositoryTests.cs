@@ -39,7 +39,7 @@ public class UserRepositoryTests
 
 public class User
 {
-    public int Id { get; set; }
+    public int Id { get; init; }
 }
 
 public interface IUnitOfWork
