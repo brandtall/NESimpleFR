@@ -1,4 +1,5 @@
-﻿using Moq;
+﻿using Microsoft.EntityFrameworkCore;
+using Moq;
 using Xunit;
 using Assert = Xunit.Assert;
 
@@ -7,27 +8,28 @@ namespace UnitTests.Repository;
 public class UserRepositoryTests
 {
     [Fact]
-    public void ShouldReturnAllUsers()
+    public async Task ShouldReturnAllUsers()
     {
         var unitOfWork = new Mock<IUnitOfWork>();
-        unitOfWork.Setup(u => u.Repository<User>().GetAll()).Returns(new List<User>(){new User()});
+        var listOfUsers = new List<User>(){new User()};
+        unitOfWork.Setup(u => u.Repository<User>().GetAll()).ReturnsAsync(listOfUsers);
 
-        var users = unitOfWork.Object.Repository<User>().GetAll();
+        var users = await unitOfWork.Object.Repository<User>().GetAll();
 
         Assert.NotEmpty(users);
     }
     
     [Fact]
-    public void ShouldReturnUserById()
+    public async Task ShouldReturnUserById()
     {
         var unitOfWork = new Mock<IUnitOfWork>();
         const int id = 6;
-        unitOfWork.Setup(u => u.Repository<User>().FindById(id)).Returns(new User()
+        unitOfWork.Setup(u => u.Repository<User>().FindById(id)).ReturnsAsync(new User()
         {
             Id = id
         });
 
-        var user = unitOfWork.Object.Repository<User>().FindById(id);
+        var user = await unitOfWork.Object.Repository<User>().FindById(id);
 
         Assert.NotNull(user);
         Assert.Equal(id, user.Id);
@@ -47,45 +49,36 @@ public interface IUnitOfWork
 
 public interface IRepository<T> where T: class
 {
-    IEnumerable<T> GetAll();
-    T FindById(int i);
+    Task<List<T>> GetAll();
+    Task<T?> FindById(int i);
 }
 
 public class Repository<T> : IRepository<T> where T : class
 {
-    private DbContext _context;
+    private readonly UserDbContext _context;
 
-    public Repository(DbContext context)
+    public Repository(UserDbContext context)
     {
         _context = context;
     }
 
-    public IEnumerable<T> GetAll()
+    public async Task<List<T>> GetAll()
     {
-        return _context.Find<T>();
+        return await _context.Set<T>().ToListAsync();
     }
 
-    public T FindById(int i)
+    public async Task<T?> FindById(int i)
     {
-        return _context.FindById<T>(i);
+        return await _context.Set<T>().FindAsync(i);
     }
 }
 
-public interface IDbContext
+public class UserDbContext : DbContext
 {
-    IEnumerable<T> Find<T>();
-}
-
-public class DbContext : IDbContext
-{
-    public IEnumerable<T> Find<T>()
+    protected UserDbContext(DbContextOptions options) : base(options)
     {
-        return [];
     }
 
-    public T FindById<T>(int i)
-    {
-        return default;
-    }
+    private DbSet<User> Users { get; set;}
 }
 
