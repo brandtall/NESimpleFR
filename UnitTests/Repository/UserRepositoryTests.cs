@@ -17,10 +17,27 @@ public class UserRepositoryTests
         Assert.NotEmpty(users);
     }
     
+    [Fact]
+    public void ShouldReturnUserById()
+    {
+        var unitOfWork = new Mock<IUnitOfWork>();
+        const int id = 6;
+        unitOfWork.Setup(u => u.Repository<User>().FindById(id)).Returns(new User()
+        {
+            Id = id
+        });
+
+        var user = unitOfWork.Object.Repository<User>().FindById(id);
+
+        Assert.NotNull(user);
+        Assert.Equal(id, user.Id);
+    }
+    
 }
 
 public class User
 {
+    public int Id { get; set; }
 }
 
 public interface IUnitOfWork
@@ -31,13 +48,14 @@ public interface IUnitOfWork
 public interface IRepository<T> where T: class
 {
     IEnumerable<T> GetAll();
+    T FindById(int i);
 }
 
 public class Repository<T> : IRepository<T> where T : class
 {
-    private DBContext _context;
+    private DbContext _context;
 
-    public Repository(DBContext context)
+    public Repository(DbContext context)
     {
         _context = context;
     }
@@ -46,13 +64,28 @@ public class Repository<T> : IRepository<T> where T : class
     {
         return _context.Find<T>();
     }
+
+    public T FindById(int i)
+    {
+        return _context.FindById<T>(i);
+    }
 }
 
-public class DBContext
+public interface IDbContext
+{
+    IEnumerable<T> Find<T>();
+}
+
+public class DbContext : IDbContext
 {
     public IEnumerable<T> Find<T>()
     {
         return [];
+    }
+
+    public T FindById<T>(int i)
+    {
+        return default;
     }
 }
 
